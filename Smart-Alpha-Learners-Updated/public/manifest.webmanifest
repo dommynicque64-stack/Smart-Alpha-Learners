@@ -1,0 +1,16 @@
+{
+  "name": "Smart Alpha Learners — School Management System",
+  "short_name": "Smart Alpha Learners",
+  "description": "Smart Alpha Learners school management system.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "portrait-primary",
+  "background_color": "#f1f5f9",
+  "theme_color": "#047857",
+  "icons": [
+    { "src": "/pwa-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/pwa-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

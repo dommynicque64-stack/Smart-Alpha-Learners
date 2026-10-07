@@ -1,0 +1,229 @@
+@import "tailwindcss";
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background-color: var(--app-page);
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Smart Alpha Learners theme system. The original theme is retained, plus the three
+   approved themes. Theme colors are exposed as variables so shared components stay
+   synchronized when the user switches theme. */
+:root {
+  --app-primary: #047857;
+  --app-primary-dark: #065f46;
+  --app-page: #f1f5f9;
+  --app-surface: #ffffff;
+  --app-primary-soft: #ecfdf5;
+  --app-sidebar-hover: #781C2E;
+}
+
+html[data-theme="forest-stone"] {
+  --app-primary: #1F3D28;
+  --app-primary-dark: #162D1D;
+  --app-page: #D7D2C8;
+  --app-surface: #FFFFFF;
+  --app-primary-soft: #E8EEE9;
+}
+
+html[data-theme="bronze-pearl"] {
+  --app-primary: #8D6613;
+  --app-primary-dark: #6F500E;
+  --app-page: #EDE8E4;
+  --app-surface: #FFFFFF;
+  --app-primary-soft: #F5F0E3;
+}
+
+html[data-theme="garnet-bone"] {
+  --app-primary: #781C2E;
+  --app-primary-dark: #5F1625;
+  --app-page: #F9F6EE;
+  --app-surface: #FFFFFF;
+  --app-primary-soft: #F6E9EC;
+}
+
+html, body, #root { min-height: 100%; }
+body { background-color: var(--app-page); }
+
+/* Shared primary controls. These selectors intentionally map the existing emerald
+   utility classes to the active theme without requiring a risky page-by-page rewrite. */
+html[data-theme="forest-stone"] .bg-emerald-500,
+html[data-theme="bronze-pearl"] .bg-emerald-500,
+html[data-theme="garnet-bone"] .bg-emerald-500 { background-color: var(--app-primary) !important; }
+html[data-theme="forest-stone"] .bg-emerald-600,
+html[data-theme="bronze-pearl"] .bg-emerald-600,
+html[data-theme="garnet-bone"] .bg-emerald-600 { background-color: var(--app-primary) !important; }
+html[data-theme="forest-stone"] .bg-emerald-700,
+html[data-theme="bronze-pearl"] .bg-emerald-700,
+html[data-theme="garnet-bone"] .bg-emerald-700 { background-color: var(--app-primary) !important; }
+html[data-theme="forest-stone"] .bg-emerald-800,
+html[data-theme="bronze-pearl"] .bg-emerald-800,
+html[data-theme="garnet-bone"] .bg-emerald-800 { background-color: var(--app-primary-dark) !important; }
+html[data-theme="forest-stone"] .bg-emerald-900,
+html[data-theme="bronze-pearl"] .bg-emerald-900,
+html[data-theme="garnet-bone"] .bg-emerald-900 { background-color: var(--app-primary-dark) !important; }
+html[data-theme="forest-stone"] .bg-emerald-950,
+html[data-theme="bronze-pearl"] .bg-emerald-950,
+html[data-theme="garnet-bone"] .bg-emerald-950 { background-color: var(--app-primary) !important; }
+
+html[data-theme="forest-stone"] .text-emerald-600,
+html[data-theme="bronze-pearl"] .text-emerald-600,
+html[data-theme="garnet-bone"] .text-emerald-600,
+html[data-theme="forest-stone"] .text-emerald-700,
+html[data-theme="bronze-pearl"] .text-emerald-700,
+html[data-theme="garnet-bone"] .text-emerald-700,
+html[data-theme="forest-stone"] .text-emerald-800,
+html[data-theme="bronze-pearl"] .text-emerald-800,
+html[data-theme="garnet-bone"] .text-emerald-800 { color: var(--app-primary) !important; }
+
+html[data-theme="forest-stone"] .border-emerald-500,
+html[data-theme="bronze-pearl"] .border-emerald-500,
+html[data-theme="garnet-bone"] .border-emerald-500,
+html[data-theme="forest-stone"] .border-emerald-600,
+html[data-theme="bronze-pearl"] .border-emerald-600,
+html[data-theme="garnet-bone"] .border-emerald-600 { border-color: var(--app-primary) !important; }
+
+html[data-theme="forest-stone"] .focus\:border-emerald-600:focus,
+html[data-theme="bronze-pearl"] .focus\:border-emerald-600:focus,
+html[data-theme="garnet-bone"] .focus\:border-emerald-600:focus { border-color: var(--app-primary) !important; }
+html[data-theme="forest-stone"] .focus\:ring-emerald-500\/30:focus,
+html[data-theme="bronze-pearl"] .focus\:ring-emerald-500\/30:focus,
+html[data-theme="garnet-bone"] .focus\:ring-emerald-500\/30:focus { --tw-ring-color: color-mix(in srgb, var(--app-primary) 30%, transparent) !important; }
+
+/* Sidebar: all hover states intentionally use the requested garnet hover color. */
+.sidebar-nav-item:hover { background-color: #781C2E !important; color: #fff !important; }
+.sidebar-nav-active { background-color: var(--app-primary-dark) !important; }
+.sidebar-shell { background-color: var(--app-primary) !important; }
+
+/* Application shell/background areas. Content cards remain white. */
+.app-shell { background-color: var(--app-page); }
+
+/* Keep theme previews and selected states in Profile synchronized. */
+.theme-option-selected { border-color: var(--app-primary) !important; background-color: var(--app-primary-soft) !important; }
+.theme-option-check { background-color: var(--app-primary) !important; }
+
+
+/* Landing page visual treatment: background and layering only. Authentication and
+   form behavior remain in Login.tsx unchanged. */
+.login-landing {
+  isolation: isolate;
+  background-image: url('/landing-school-background.jpg');
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+}
+
+.login-landing::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: rgba(255, 255, 255, 0.20);
+}
+
+.login-landing-visual {
+  z-index: 10;
+}
+
+.login-landing-panel {
+  z-index: 20;
+}
+
+.login-form-card {
+  position: relative;
+  z-index: 30;
+  border: 1px solid rgba(255, 255, 255, 0.88);
+  border-radius: 1.5rem;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 2rem;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.18);
+  backdrop-filter: blur(8px);
+}
+
+.login-3d-frame {
+  position: relative;
+  z-index: 10;
+  flex: 0 1 auto;
+  overflow: visible;
+}
+
+@media (min-width: 1024px) {
+  .login-landing {
+    min-height: 100svh;
+    background-position: center center;
+  }
+
+  .login-landing-visual {
+    min-height: 100svh;
+    align-items: center;
+    justify-content: center;
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .login-3d-frame {
+    height: 97svh;
+    min-height: 650px;
+    max-height: 980px;
+  }
+}
+
+@media (max-width: 1023px) {
+  .login-landing {
+    min-height: 100svh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    background-position: center top;
+  }
+
+  .login-landing::before {
+    background: rgba(255, 255, 255, 0.34);
+  }
+
+  .login-landing-visual {
+    min-height: 56svh;
+    max-height: 66svh;
+  }
+
+  .login-3d-frame {
+    height: 58svh;
+    min-height: 360px;
+    max-height: 620px;
+  }
+
+  .login-landing-panel {
+    min-height: auto;
+    padding-top: 0.5rem;
+    padding-bottom: 2rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .login-landing {
+    background-position: 54% top;
+  }
+
+  .login-landing-visual {
+    min-height: 48svh;
+    max-height: 55svh;
+    padding: 0;
+  }
+
+  .login-3d-frame {
+    height: 50svh;
+    min-height: 300px;
+  }
+
+  .login-form-card {
+    border-radius: 1.25rem;
+    padding: 1.25rem;
+  }
+}

@@ -1,0 +1,566 @@
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Smart Alpha Learners 3D Logo</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:100%;height:100%;margin:0;padding:0;overflow:hidden;background:transparent}
+  body{
+    font-family:"Segoe UI",system-ui,-apple-system,Helvetica,Arial,sans-serif;
+    -webkit-tap-highlight-color:transparent;
+  }
+  #app{position:relative;width:100%;height:100%;min-width:120px;min-height:120px}
+  #app canvas{display:block}
+  @keyframes pulse{0%,100%{opacity:.42}50%{opacity:.95}}
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.182.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.182.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<div id="app" aria-label="Smart Alpha Learners 3D animated logo"></div>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+/* ============================================================
+   RENDERER / SCENE / CAMERA
+   ============================================================ */
+const app = document.getElementById('app');
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+renderer.setClearColor(0x000000, 0);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(app.clientWidth || window.innerWidth, app.clientHeight || window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+app.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.1, 200);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enabled = false;
+controls.enableDamping = true;
+controls.dampingFactor = 0.07;
+controls.enablePan = false;
+controls.rotateSpeed = 0.55;
+controls.zoomSpeed = 0.7;
+controls.minPolarAngle = Math.PI * 0.30;
+controls.maxPolarAngle = Math.PI * 0.70;
+controls.minAzimuthAngle = -0.9;
+controls.maxAzimuthAngle = 0.9;
+
+/* soft studio environment for gentle specular life */
+const pmrem = new THREE.PMREMGenerator(renderer);
+const envRT = pmrem.fromScene(new RoomEnvironment(), 0.05);
+scene.environment = envRT.texture;
+pmrem.dispose();
+
+/* ============================================================
+   LIGHTS
+   ============================================================ */
+scene.add(new THREE.HemisphereLight(0xffffff, 0xdfe9f7, 0.95));
+
+const key = new THREE.DirectionalLight(0xffffff, 1.55);
+key.position.set(5, 7.5, 16);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+key.shadow.camera.left = -7;
+key.shadow.camera.right = 7;
+key.shadow.camera.top = 9;
+key.shadow.camera.bottom = -9;
+key.shadow.camera.near = 1;
+key.shadow.camera.far = 45;
+key.shadow.bias = -0.0007;
+key.shadow.radius = 4;
+key.shadow.normalBias = 0.02;
+scene.add(key);
+
+const fill = new THREE.DirectionalLight(0xa9cdff, 0.55);
+fill.position.set(-7, -3, 7);
+scene.add(fill);
+
+const rim = new THREE.DirectionalLight(0xffffff, 0.75);
+rim.position.set(-1, 3, -11);
+scene.add(rim);
+
+const accent = new THREE.PointLight(0xdcecff, 90, 34, 2);
+accent.position.set(6, 6, 8);
+scene.add(accent);
+
+/* shadow catcher (only shadows are visible — CSS gradient shows through) */
+const shadowPlane = new THREE.Mesh(
+  new THREE.PlaneGeometry(70, 70),
+  new THREE.ShadowMaterial({ opacity: 0.10, color: 0x1f3f66 })
+);
+shadowPlane.position.z = -2.6;
+shadowPlane.receiveShadow = false;
+shadowPlane.visible = false;
+scene.add(shadowPlane);
+
+/* ============================================================
+   MATERIALS
+   ============================================================ */
+const MAT = {
+  blue:  new THREE.MeshStandardMaterial({ color: 0x0d4a8f, roughness: 0.33, metalness: 0.28, envMapIntensity: 0.75 }),
+  green: new THREE.MeshStandardMaterial({ color: 0x74c043, roughness: 0.33, metalness: 0.28, envMapIntensity: 0.75 }),
+  sky:   new THREE.MeshStandardMaterial({ color: 0xa4c7e6, roughness: 0.55, metalness: 0.15, envMapIntensity: 0.55 }),
+  sun:   new THREE.MeshStandardMaterial({ color: 0xf7a81c, roughness: 0.36, metalness: 0.20, emissive: 0xf7a81c, emissiveIntensity: 0.30, envMapIntensity: 0.6 }),
+  white: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.42, metalness: 0.05, envMapIntensity: 0.5 }),
+  divider: new THREE.MeshStandardMaterial({ color: 0xb9cbe0, roughness: 0.7, metalness: 0.1, envMapIntensity: 0.4 })
+};
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+function extrude(pts, mat, depth = 0.20, bevel = 0.018, bevelSegments = 3) {
+  const shape = new THREE.Shape();
+  shape.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length; i++) shape.lineTo(pts[i][0], pts[i][1]);
+  shape.closePath();
+
+  const d = Math.max(depth - bevel * 2, 0.002);
+  const geo = new THREE.ExtrudeGeometry(shape, {
+    depth: d,
+    bevelEnabled: true,
+    bevelThickness: bevel,
+    bevelSize: bevel,
+    bevelSegments,
+    curveSegments: 16
+  });
+  geo.computeBoundingBox();
+  const bb = geo.boundingBox;
+  geo.translate(0, 0, -(bb.min.z + bb.max.z) / 2);
+  geo.computeVertexNormals();
+
+  const m = new THREE.Mesh(geo, mat);
+  m.castShadow = true;
+  m.receiveShadow = true;
+  return m;
+}
+
+function arcMesh(radius, tube, startDeg, endDeg, mat) {
+  const span = THREE.MathUtils.degToRad(endDeg - startDeg);
+  const geo = new THREE.TorusGeometry(radius, tube, 18, 180, span);
+  const m = new THREE.Mesh(geo, mat);
+  m.rotation.z = THREE.MathUtils.degToRad(startDeg);
+  m.castShadow = true;
+  m.receiveShadow = true;
+  return m;
+}
+
+function person(scale, mat) {
+  const g = new THREE.Group();
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.105, 24, 18), mat);
+  head.position.y = 0.20;
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.125, 0.10, 8, 22), mat);
+  body.position.y = -0.06;
+  head.castShadow = body.castShadow = true;
+  head.receiveShadow = body.receiveShadow = true;
+  g.add(head, body);
+  g.scale.setScalar(scale);
+  return g;
+}
+
+function makeTex(w, h, dpr, draw) {
+  const c = document.createElement('canvas');
+  c.width = Math.round(w * dpr);
+  c.height = Math.round(h * dpr);
+  const ctx = c.getContext('2d');
+  ctx.scale(dpr, dpr);
+  draw(ctx, w, h);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+  tex.needsUpdate = true;
+  return tex;
+}
+
+function textPlane(tex, w, h) {
+  const geo = new THREE.PlaneGeometry(w, h);
+  const mat = new THREE.MeshBasicMaterial({
+    map: tex, transparent: true, depthWrite: false, side: THREE.DoubleSide
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.renderOrder = 3;
+  return mesh;
+}
+
+/* ============================================================
+   ANIMATION REGISTRY
+   ============================================================ */
+const logo = new THREE.Group();
+scene.add(logo);
+
+const parts = [];
+let introStart = 0;
+
+function place(obj, x, y, z, delay, floatCfg) {
+  obj.position.set(x, y, z);
+  const base = new THREE.Vector3(x, y, z);
+  const baseScale = obj.scale.clone();
+  const off = new THREE.Vector3(
+    (Math.random() - 0.5) * 1.4,
+    (Math.random() - 0.5) * 1.4,
+    2.6 + Math.random() * 2.4
+  );
+  parts.push({ obj, base, baseScale, off, delay, float: floatCfg || null });
+  logo.add(obj);
+  return obj;
+}
+
+/* ============================================================
+   EMBLEM
+   ============================================================ */
+const EY = 2.25;   // emblem centre height
+const R  = 1.12;   // ring radius
+
+/* --- broken ring: blue arc + green arc --- */
+place(arcMesh(R, 0.050, 52, 208, MAT.blue), 0, EY, 0, 0.00, { a: 0.012, s: 0.6, p: 0, x: true, y: true });
+place(arcMesh(R, 0.050, 232, 392, MAT.green), 0, EY, 0, 0.10, { a: 0.012, s: 0.6, p: 1.7, x: true, y: true });
+
+/* --- mountains --- */
+const mtnL = extrude([[-0.80, -0.62], [-0.48, -0.02], [-0.16, -0.62]], MAT.sky, 0.12, 0.012);
+const mtnR = extrude([[0.14, -0.58], [0.47, -0.01], [0.80, -0.58]], MAT.sky, 0.12, 0.012);
+place(mtnL, 0, EY, -0.20, 0.16);
+place(mtnR, 0, EY, -0.20, 0.21);
+
+/* --- sun --- */
+const sunGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.20, 36);
+sunGeo.rotateX(Math.PI / 2);
+const sun = new THREE.Mesh(sunGeo, MAT.sun);
+sun.castShadow = true; sun.receiveShadow = true;
+place(sun, 0.53, EY + 0.06, -0.32, 0.26, { a: 0.028, s: 1.3, p: 0.4, y: true });
+
+/* --- the "A" --- */
+const aLeft  = extrude([[-0.78, -0.72], [-0.44, -0.72], [-0.06, 0.56], [-0.30, 0.56]], MAT.blue, 0.24);
+const aRight = extrude([[ 0.26, -0.72], [ 0.60, -0.72], [ 0.20, 0.56], [-0.14, 0.56]], MAT.blue, 0.24);
+const aApex  = extrude([[-0.30,  0.50], [ 0.20, 0.50], [-0.05, 0.92]], MAT.blue, 0.24);
+place(aLeft,  0, EY, 0, 0.30);
+place(aRight, 0, EY, 0, 0.38);
+place(aApex,  0, EY, 0, 0.46);
+
+/* --- green arrow --- */
+const shaftPts = [
+  [-0.594, -0.332], [0.526, 0.608], [0.674, 0.432], [-0.446, -0.508]
+];
+const shaft = extrude(shaftPts, MAT.green, 0.20);
+place(shaft, 0, EY, 0.14, 0.60, { a: 0.022, s: 1.05, p: 0.0, z: true });
+
+const headPts = [[0.4393, 0.7115], [0.7607, 0.3285], [0.8604, 0.7386]];
+const aHead = extrude(headPts, MAT.green, 0.20);
+place(aHead, 0, EY, 0.14, 0.70, { a: 0.022, s: 1.05, p: 0.0, z: true });
+
+/* --- people --- */
+const people = new THREE.Group();
+const pC = person(1.00, MAT.blue);  pC.position.set( 0.00,  0.00,  0.04); people.add(pC);
+const pL = person(0.72, MAT.green); pL.position.set(-0.30, -0.08, -0.06); people.add(pL);
+const pR = person(0.72, MAT.green); pR.position.set( 0.30, -0.08, -0.06); people.add(pR);
+place(people, 0, EY - 0.50, 0.28, 0.82, { a: 0.030, s: 1.15, p: 0.9, y: true });
+
+/* ============================================================
+   TEXT — "Smart Alpha"
+   ============================================================ */
+const titleTex = makeTex(1400, 240, 2, (ctx, w, h) => {
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+  const size = 172;
+  ctx.font = `900 ${size}px Arial, "Helvetica Neue", Helvetica, sans-serif`;
+  const t1 = 'Smart ';
+  const t2 = 'Alpha';
+  const w1 = ctx.measureText(t1).width;
+  const w2 = ctx.measureText(t2).width;
+  const total = w1 + w2;
+  const x = (w - total) / 2;
+  const y = h / 2 + 4;
+  ctx.fillStyle = '#0d4a8f';
+  ctx.fillText(t1, x, y);
+  ctx.fillStyle = '#74c043';
+  ctx.fillText(t2, x + w1, y);
+});
+const titleMesh = textPlane(titleTex, 5.6, 5.6 * 240 / 1400);
+place(titleMesh, 0, 0.62, 0.10, 0.95, { a: 0.018, s: 0.75, p: 0.3, y: true });
+
+/* ============================================================
+   TEXT — "Learners"
+   ============================================================ */
+const learnerTex = makeTex(1400, 260, 2, (ctx, w, h) => {
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'center';
+  const size = 200;
+  ctx.font = `900 ${size}px Arial, "Helvetica Neue", Helvetica, sans-serif`;
+  const txt = 'Learners';
+  const tw = ctx.measureText(txt).width;
+  const cy = h / 2 + 4;
+  ctx.fillStyle = '#0d4a8f';
+  ctx.fillText(txt, w / 2, cy);
+
+  ctx.strokeStyle = '#0d4a8f';
+  ctx.lineWidth = 7;
+  ctx.lineCap = 'round';
+  const gap = tw / 2 + 58;
+  ctx.beginPath(); ctx.moveTo(80, cy); ctx.lineTo(w / 2 - gap, cy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(w / 2 + gap, cy); ctx.lineTo(w - 80, cy); ctx.stroke();
+});
+const learnerMesh = textPlane(learnerTex, 5.0, 5.0 * 260 / 1400);
+place(learnerMesh, 0, -0.28, 0.10, 1.05, { a: 0.018, s: 0.75, p: 1.4, y: true });
+
+/* ============================================================
+   TEXT — tagline with lens arcs
+   ============================================================ */
+const tagTex = makeTex(1500, 420, 2, (ctx, w, h) => {
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  /* lens curves */
+  ctx.strokeStyle = '#0d4a8f';
+  ctx.lineWidth = 5;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(120, 100);
+  ctx.quadraticCurveTo(w / 2, 26, w - 120, 100);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(120, 268);
+  ctx.quadraticCurveTo(w / 2, 342, w - 120, 268);
+  ctx.stroke();
+
+  /* line 1 : Brightening (green) + rest (blue) */
+  const size = 86;
+  ctx.font = `700 ${size}px Arial, "Helvetica Neue", Helvetica, sans-serif`;
+  const p1 = 'Brightening';
+  const p2 = ' the gateway for';
+  const w1 = ctx.measureText(p1).width;
+  const w2 = ctx.measureText(p2).width;
+  const startX = (w - (w1 + w2)) / 2;
+  const y1 = 128;
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#74c043';
+  ctx.fillText(p1, startX, y1);
+  ctx.fillStyle = '#0d4a8f';
+  ctx.fillText(p2, startX + w1, y1);
+
+  /* line 2 */
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#0d4a8f';
+  ctx.fillText('the young generation', w / 2, 240);
+});
+const tagMesh = textPlane(tagTex, 5.9, 5.9 * 420 / 1500);
+place(tagMesh, 0, -1.45, 0.10, 1.15, { a: 0.016, s: 0.7, p: 2.2, y: true });
+
+/* ============================================================
+   FEATURE ROW
+   ============================================================ */
+const FEAT_X = [-1.95, -0.65, 0.65, 1.95];
+const FEAT_ICON_Y = -2.28;
+const FEAT_LABEL_Y = -2.80;
+
+function iconConnectSchools() {
+  const g = new THREE.Group();
+  const c = person(0.44, MAT.blue); c.position.set(0, 0.02, 0.04); g.add(c);
+  const l = person(0.31, MAT.blue); l.position.set(-0.17, -0.02, -0.03); g.add(l);
+  const r = person(0.31, MAT.blue); r.position.set(0.17, -0.02, -0.03); g.add(r);
+  return g;
+}
+
+function iconSecure() {
+  const g = new THREE.Group();
+  const shield = extrude(
+    [[-0.17, 0.20], [0.17, 0.20], [0.17, -0.02], [0.10, -0.15], [0, -0.245], [-0.10, -0.15], [-0.17, -0.02]],
+    MAT.blue, 0.11, 0.012
+  );
+  g.add(shield);
+
+  const segA = new THREE.Mesh(new THREE.BoxGeometry(0.092, 0.042, 0.05), MAT.white);
+  segA.position.set(-0.048, -0.048, 0.075);
+  segA.rotation.z = -0.86;
+  const segB = new THREE.Mesh(new THREE.BoxGeometry(0.188, 0.042, 0.05), MAT.white);
+  segB.position.set(0.033, -0.004, 0.075);
+  segB.rotation.z = 0.975;
+  segA.castShadow = segB.castShadow = true;
+  g.add(segA, segB);
+  return g;
+}
+
+function iconChart() {
+  const g = new THREE.Group();
+  const hs = [0.14, 0.25, 0.37];
+  const xs = [-0.16, 0, 0.16];
+  for (let i = 0; i < 3; i++) {
+    const b = new THREE.Mesh(new THREE.BoxGeometry(0.11, hs[i], 0.13), MAT.blue);
+    b.position.set(xs[i], -0.19 + hs[i] / 2, 0);
+    b.castShadow = b.receiveShadow = true;
+    g.add(b);
+  }
+  return g;
+}
+
+function iconCloud() {
+  const g = new THREE.Group();
+  const puff = (x, y, r) => {
+    const m = new THREE.Mesh(new THREE.SphereGeometry(r, 22, 16), MAT.blue);
+    m.position.set(x, y, 0);
+    m.castShadow = true;
+    g.add(m);
+  };
+  puff(-0.14, -0.03, 0.095);
+  puff(0.00, 0.02, 0.125);
+  puff(0.14, -0.03, 0.095);
+  const base = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.10, 0.17), MAT.blue);
+  base.position.set(0, -0.058, 0);
+  base.castShadow = true;
+  g.add(base);
+
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.13, 14), MAT.white);
+  stem.position.set(0, 0.055, 0.15);
+  const head = new THREE.Mesh(new THREE.ConeGeometry(0.058, 0.085, 18), MAT.white);
+  head.position.set(0, 0.165, 0.15);
+  stem.castShadow = head.castShadow = true;
+  g.add(stem, head);
+  return g;
+}
+
+function featureLabel(l1, l2) {
+  const tex = makeTex(340, 140, 3, (ctx, w, h) => {
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#0d4a8f';
+    ctx.font = '700 41px Arial, "Helvetica Neue", Helvetica, sans-serif';
+    ctx.fillText(l1, w / 2, 46);
+    ctx.fillText(l2, w / 2, 96);
+  });
+  return textPlane(tex, 1.38, 1.38 * 140 / 340);
+}
+
+/* Feature cards are intentionally omitted in the embeddable logo-only version. */
+
+/* ============================================================
+   CAMERA FIT
+   ============================================================ */
+const CONTENT_H = 6.35;
+const CONTENT_W = 3.0;
+const CENTER_Y = 0.45;
+let firstFit = true;
+
+function fitCamera() {
+  const vFov = camera.fov * Math.PI / 180;
+  const dH = (CONTENT_H / 2) / Math.tan(vFov / 2);
+  const dW = (CONTENT_W / 2) / (Math.tan(vFov / 2) * camera.aspect);
+  const d = Math.max(dH, dW) * 1.06;
+  const target = new THREE.Vector3(0, CENTER_Y, 0);
+
+  controls.target.copy(target);
+
+  if (firstFit) {
+    camera.position.set(0, CENTER_Y, d);
+    firstFit = false;
+  } else {
+    const dir = camera.position.clone().sub(target);
+    if (dir.lengthSq() < 1e-3) dir.set(0, 0, 1);
+    camera.position.copy(target).add(dir.normalize().multiplyScalar(d));
+  }
+
+  controls.minDistance = d * 0.55;
+  controls.maxDistance = d * 1.7;
+  controls.update();
+}
+
+fitCamera();
+requestAnimationFrame(() => {
+  renderer.setSize(app.clientWidth || window.innerWidth, app.clientHeight || window.innerHeight);
+  camera.aspect = (app.clientWidth || window.innerWidth) / (app.clientHeight || window.innerHeight);
+  camera.updateProjectionMatrix();
+  fitCamera();
+});
+window.addEventListener('resize', () => {
+  camera.aspect = (app.clientWidth || window.innerWidth) / (app.clientHeight || window.innerHeight);
+  camera.updateProjectionMatrix();
+  renderer.setSize(app.clientWidth || window.innerWidth, app.clientHeight || window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  fitCamera();
+});
+
+/* Tap/click the logo to replay its entrance animation. */
+renderer.domElement.addEventListener('click', () => {
+  introStart = clock.getElapsedTime();
+});
+
+/* ============================================================
+   ANIMATION LOOP
+   ============================================================ */
+const clock = new THREE.Clock();
+introStart = 0;
+
+const easeOutCubic = x => 1 - Math.pow(1 - x, 3);
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  const t = clock.getElapsedTime();
+  const tt = t - introStart;
+
+  /* ---- entrance + idle float ---- */
+  for (let i = 0; i < parts.length; i++) {
+    const p = parts[i];
+    const k = THREE.MathUtils.clamp((tt - p.delay) / 0.95, 0, 1);
+    const e = easeOutCubic(k);
+
+    let ox = 0, oy = 0, oz = 0;
+    const f = p.float;
+    if (f) {
+      const sv = Math.sin(t * f.s + f.p) * f.a * e;
+      const cv = Math.cos(t * f.s + f.p) * f.a * e;
+      if (f.x) ox = sv;
+      if (f.y) oy = sv;
+      if (f.z) oz = cv;
+    }
+
+    const back = 1 - e;
+    p.obj.position.set(
+      p.base.x + p.off.x * back + ox,
+      p.base.y + p.off.y * back + oy,
+      p.base.z + p.off.z * back + oz
+    );
+
+    const sc = 0.30 + 0.70 * e;
+    p.obj.scale.set(
+      p.baseScale.x * sc,
+      p.baseScale.y * sc,
+      p.baseScale.z * sc
+    );
+  }
+
+  /* ---- whole-logo gentle sway ---- */
+  const sway = Math.min(1, Math.max(0, (tt - 0.2) / 1.6));
+  logo.rotation.y = Math.sin(t * 0.42) * 0.125 * sway;
+  logo.rotation.x = Math.sin(t * 0.31 + 1.0) * 0.048 * sway;
+  logo.position.y = Math.sin(t * 0.58) * 0.055 * sway;
+
+  /* ---- sun glow pulse ---- */
+  const pulse = 0.28 + Math.sin(t * 1.6) * 0.16;
+  MAT.sun.emissiveIntensity = pulse;
+
+  /* ---- orbiting accent light for moving specular highlights ---- */
+  accent.position.set(
+    Math.sin(t * 0.55) * 9,
+    Math.cos(t * 0.42) * 7 + 2,
+    7 + Math.sin(t * 0.33) * 3
+  );
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+animate();
+</script>
+</body>
+</html>
